@@ -1,0 +1,206 @@
+/* Scorecard: one row per player, one column per hole (day) */
+.wh-scroll {
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+    border-radius: .5rem;
+}
+
+/* Fixed column widths (player 9.5rem + 18 days x 2.9rem + total 3.6rem) so that the boxes used to type
+   in a score cannot stretch the columns */
+.wh-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    width: 65.3rem;
+    min-width: 100%;
+    font-variant-numeric: tabular-nums;
+}
+
+.wh-table th,
+.wh-table td {
+    white-space: nowrap;
+    border-bottom: 1px solid #eef0f2;
+    border-right: 1px solid #f1f3f5;
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wh-table thead th {
+    background: #f8f9fa;
+    padding: .35rem .25rem;
+    font-weight: 600;
+    font-size: .8rem;
+    width: 2.9rem;
+}
+
+.wh-table thead th.wh-date {
+    font-weight: 400;
+    color: #6c757d;
+    font-size: .7rem;
+}
+
+/* The player names stay visible when the table is scrolled sideways */
+.wh-table .wh-name-col {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #fff;
+    text-align: left;
+    padding: .3rem .6rem;
+    width: 9.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+    border-right: 2px solid #dee2e6;
+}
+
+.wh-table thead .wh-name-col {
+    background: #f8f9fa;
+    z-index: 3;
+}
+
+.wh-table tfoot th,
+.wh-table tfoot td {
+    background: #f8f9fa;
+    border-bottom: 0;
+}
+
+.wh-table tfoot .wh-name-col {
+    background: #f8f9fa;
+}
+
+.wh-table .wh-total-col,
+.wh-table .wh-total {
+    width: 3.6rem;
+    font-weight: 700;
+    background: #f8f9fa;
+    border-left: 2px solid #dee2e6;
+}
+
+.wh-cell {
+    height: 2.1rem;
+    font-weight: 600;
+}
+
+.wh-mean,
+.wh-word {
+    font-size: .8rem;
+    color: #495057;
+    padding: .3rem .15rem !important;
+}
+
+.wh-word {
+    font-size: .68rem;
+    font-weight: 600;
+}
+
+/* Score colours, compared with par (par 4: 1-2 great, 3 good, 4 par, 5 over, 6 bad) */
+.s-great { background: #8fd19e; color: #0b3d1a; }
+.s-good  { background: #d1ecd7; color: #14532d; }
+.s-par   { background: #fff; }
+.s-over  { background: #fde8c8; color: #7a4a00; }
+.s-bad   { background: #f7c6c6; color: #7f1d1d; }
+.s-fail  { background: #e4606d; color: #fff; }
+.s-none  { background: #e9ecef; color: #6c757d; }
+
+/* Typing into the scorecard */
+.wh-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    height: 2.1rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-align: center;
+    font-weight: 600;
+    color: inherit;
+    padding: 0;
+    text-transform: uppercase;
+}
+
+.wh-input:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: -2px;
+    background: rgba(255, 255, 255, .6);
+}
+
+.wh-word-input {
+    font-size: .68rem;
+    height: 1.8rem;
+}
+
+.wh-dirty {
+    box-shadow: inset 0 0 0 2px #ffc107;
+}
+
+/* Bar shown while there are changes that have not been saved */
+#wh_savebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1040;
+    background: #212529;
+    color: #fff;
+    padding: .6rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, .25);
+}
+
+#wh_savebar[hidden] {
+    display: none;
+}
+
+body.wh-has-savebar {
+    padding-bottom: 4rem;
+}
+
+/* Daily entry: one row per player with a button for each possible score */
+.wh-daily-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem .75rem;
+    padding: .45rem 0;
+    border-bottom: 1px solid #eef0f2;
+}
+
+.wh-daily-name {
+    flex: 0 0 9.5rem;
+    font-weight: 600;
+}
+
+.wh-daily-row .btn-group .btn {
+    min-width: 2.4rem;
+    font-weight: 600;
+}
+
+.wh-daily-row .btn-check:checked + .btn.s-great-btn { background: #8fd19e; border-color: #5fb977; color: #0b3d1a; }
+.wh-daily-row .btn-check:checked + .btn.s-good-btn  { background: #d1ecd7; border-color: #9ccfae; color: #14532d; }
+.wh-daily-row .btn-check:checked + .btn.s-par-btn   { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+.wh-daily-row .btn-check:checked + .btn.s-over-btn  { background: #fde8c8; border-color: #f0c98d; color: #7a4a00; }
+.wh-daily-row .btn-check:checked + .btn.s-bad-btn   { background: #f7c6c6; border-color: #e79a9a; color: #7f1d1d; }
+.wh-daily-row .btn-check:checked + .btn.s-fail-btn  { background: #e4606d; border-color: #e4606d; color: #fff; }
+.wh-daily-row .btn-check:checked + .btn.s-none-btn  { background: #6c757d; border-color: #6c757d; color: #fff; }
+
+.wh-legend span {
+    border: 1px solid rgba(0, 0, 0, .06);
+    display: inline-block;
+    padding: .05rem .5rem;
+    border-radius: .25rem;
+    margin-right: .35rem;
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+@media (max-width: 576px) {
+    .wh-daily-name {
+        flex-basis: 100%;
+    }
+}
