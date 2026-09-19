@@ -57,7 +57,7 @@ function parse_workbook($filename)
         if ($sheet_code === '') {
             throw new WorkbookException("Cell A2 of the sheet \"$worksheet_name\" is empty. It must hold the code that identifies your group.");
         }
-        if (!preg_match('/^[\p{L}\p{N}_. -]{1,40}$/u', $sheet_code)) {
+        if (!valid_group_code($sheet_code)) {
             throw new WorkbookException("The group code \"$sheet_code\" in cell A2 of the sheet \"$worksheet_name\" is not valid. Use up to 40 letters, numbers, spaces, dots, dashes or underscores.");
         }
         if ($group_code === null) {

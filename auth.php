@@ -150,6 +150,22 @@ function set_group_password($db, $group_id, $password)
     return $hash;
 }
 
+// Wrong passwords are counted per group (and under id 0 for the super admin) to slow down guessing
+function too_many_failures($db, $failure_id)
+{
+    $recent = db_row($db, "SELECT COUNT(*) AS n FROM w_login_failures WHERE group_id = :id AND failed_at > :since",
+        array(':id' => $failure_id, ':since' => time() - AUTH_FAILURE_WINDOW));
+    return $recent['n'] >= AUTH_MAX_FAILURES;
+}
+
+function record_failure($db, $failure_id)
+{
+    db_run($db, "INSERT INTO w_login_failures (group_id, ip, failed_at) VALUES (:id, :ip, :now)",
+        array(':id' => $failure_id, ':ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '', ':now' => time()));
+    db_run($db, "DELETE FROM w_login_failures WHERE failed_at < :old", array(':old' => time() - 86400));
+    usleep(500000); // make guessing slow
+}
+
 // Check a group's password and, if it is right, unlock the group for this browser.
 // Returns array('ok'=>bool, 'status'=>http status, 'message'=>text)
 function group_login($db, $group_id, $password)
@@ -163,21 +179,61 @@ function group_login($db, $group_id, $password)
             . "The site owner can set its password by running: php manage_groups.php set-password " . $group['code']);
     }
 
-    $recent = db_row($db, "SELECT COUNT(*) AS n FROM w_login_failures WHERE group_id = :id AND failed_at > :since",
-        array(':id' => $group['id'], ':since' => time() - AUTH_FAILURE_WINDOW));
-    if ($recent['n'] >= AUTH_MAX_FAILURES) {
+    if (too_many_failures($db, $group['id'])) {
         return array('ok' => false, 'status' => 429, 'message' => "Too many wrong passwords. Please wait a few minutes and try again.");
     }
 
     if (!password_verify($password, $group['edit_password_hash'])) {
-        db_run($db, "INSERT INTO w_login_failures (group_id, ip, failed_at) VALUES (:id, :ip, :now)",
-            array(':id' => $group['id'], ':ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '', ':now' => time()));
-        db_run($db, "DELETE FROM w_login_failures WHERE failed_at < :old", array(':old' => time() - 86400));
-        usleep(500000); // make guessing slow
+        record_failure($db, $group['id']);
         return array('ok' => false, 'status' => 401, 'message' => "That password is not right.");
     }
 
     db_run($db, "DELETE FROM w_login_failures WHERE group_id = :id", array(':id' => $group['id']));
     grant_group($db, $group['id']);
     return array('ok' => true, 'status' => 200, 'message' => "Logged in.");
+}
+
+// The super admin has one site-wide password, kept as a hash in w_settings. It is needed to create a group
+// (from the page or by uploading a workbook for a group that does not exist yet). It is not remembered in
+// a cookie: it is checked each time it is given.
+const SUPER_ADMIN_FAILURE_ID = 0;
+
+function set_admin_password($db, $password)
+{
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    db_run($db, "INSERT INTO w_settings (name, value) VALUES ('admin_password_hash', :hash)
+                 ON CONFLICT (name) DO UPDATE SET value = excluded.value", array(':hash' => $hash));
+}
+
+function has_admin_password($db)
+{
+    return (bool)db_row($db, "SELECT value FROM w_settings WHERE name = 'admin_password_hash'");
+}
+
+// Returns array('ok'=>bool, 'status'=>http status, 'message'=>text)
+function check_admin_password($db, $password)
+{
+    $row = db_row($db, "SELECT value FROM w_settings WHERE name = 'admin_password_hash'");
+    if (!$row) {
+        return array('ok' => false, 'status' => 403, 'message' => "Creating groups is not switched on yet. "
+            . "The site owner needs to set the super admin password by running: php manage_groups.php set-admin-password");
+    }
+    if (too_many_failures($db, SUPER_ADMIN_FAILURE_ID)) {
+        return array('ok' => false, 'status' => 429, 'message' => "Too many wrong passwords. Please wait a few minutes and try again.");
+    }
+    if (!password_verify($password, $row['value'])) {
+        record_failure($db, SUPER_ADMIN_FAILURE_ID);
+        return array('ok' => false, 'status' => 401, 'message' => "The super admin password is not right.");
+    }
+    db_run($db, "DELETE FROM w_login_failures WHERE group_id = :id", array(':id' => SUPER_ADMIN_FAILURE_ID));
+    return array('ok' => true, 'status' => 200, 'message' => "OK");
+}
+
+// Stop a page that creates a group unless the super admin password was given
+function require_super_admin($db, $password)
+{
+    $check = check_admin_password($db, $password);
+    if (!$check['ok']) {
+        json_fail($check['message'], $check['status']);
+    }
 }

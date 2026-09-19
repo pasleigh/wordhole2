@@ -28,7 +28,8 @@
         wordCells: [],
         meanCells: [],
         totalCells: {},
-        saving: false
+        saving: false,
+        openRoundWhenLoaded: false   // a group has just been created: offer its first round
     }
 
     // ---------------------------------------------------------------- scores and dates
@@ -217,6 +218,12 @@
         resetDraft()
         state.dailyHole = round ? defaultDay() : 1
         renderAll()
+        if (state.openRoundWhenLoaded) {
+            state.openRoundWhenLoaded = false
+            if (round === null && state.canEdit) {
+                openNewRound()
+            }
+        }
     }
 
     // ---------------------------------------------------------------- toolbar
@@ -227,16 +234,21 @@
 
     function renderToolbar() {
         const box = $('#auth_controls').empty()
-        if (current_group_id === null) {
-            return
+        if (current_group_id !== null) {
+            appendGroupControls(box)
         }
+        box.append(toolbarButton('<i class="bi bi-people"></i> New group', 'btn-outline-secondary', openNewGroup))
+    }
+
+    // The buttons for the group being shown: log in, or what a logged in editor can do
+    function appendGroupControls(box) {
         if (!state.canEdit) {
             if (group_has_password) {
                 box.append(toolbarButton('<i class="bi bi-lock"></i> Log in to edit', 'btn-outline-secondary', function () {
                     openLogin()
                 }))
             } else {
-                box.append($('<span class="text-muted small">').text('Editing is not switched on for this group.'))
+                box.append($('<span class="text-muted small align-self-center">').text('Editing is not switched on for this group.'))
             }
             return
         }
@@ -802,6 +814,54 @@
             },
             error: function (xhr) {
                 showModalError('#password_error', xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'The password could not be changed.')
+            }
+        })
+    })
+
+    // ---------------------------------------------------------------- a new group
+
+    function openNewGroup() {
+        if (!window.wh_confirm_leave()) {
+            return
+        }
+        $('#group_form')[0].reset()
+        showModalError('#group_error', '')
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('group_modal')).show()
+    }
+
+    $('#group_modal').on('shown.bs.modal', function () {
+        $('#group_name').trigger('focus')
+    })
+
+    $('#group_form').on('submit', function (e) {
+        e.preventDefault()
+        if ($('#group_password').val() !== $('#group_password_again').val()) {
+            showModalError('#group_error', 'The two passwords are not the same.')
+            return
+        }
+        const form_data = new FormData()
+        form_data.append('admin_password', $('#group_admin_password').val())
+        form_data.append('name', $('#group_name').val())
+        form_data.append('code', $('#group_code').val())
+        form_data.append('password', $('#group_password').val())
+        $.ajax({
+            type: 'post',
+            url: './create_group.php',
+            contentType: false,
+            processData: false,
+            data: form_data,
+            dataType: 'json',
+            success: function (data) {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('group_modal')).hide()
+                // Show the new group, which starts with no rounds; you are already logged in to it
+                const url = new URL(window.location.href)
+                url.searchParams.set('g', data.group.code)
+                window.history.replaceState(null, '', url)
+                state.openRoundWhenLoaded = true
+                load_groups()
+            },
+            error: function (xhr) {
+                showModalError('#group_error', xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'The group could not be created.')
             }
         })
     })

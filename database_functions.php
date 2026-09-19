@@ -79,12 +79,13 @@ $results[] = array(
 );
 */
 // Store the results of a workbook for one group. All or nothing: if anything fails nothing is saved.
+// A new group gets $new_group_password_hash as its editing password.
 // Returns the group as array('id'=>, 'code'=>, 'name'=>)
-function import_workbook_data($db, $group_code, $group_name, $round_data)
+function import_workbook_data($db, $group_code, $group_name, $round_data, $new_group_password_hash = null)
 {
     $db->exec("BEGIN IMMEDIATE");
     try {
-        $group_id = GetGroupID($db, $group_code, $group_name);
+        $group_id = GetGroupID($db, $group_code, $group_name, $new_group_password_hash);
         push_all_round_data_database($db, $group_id, $round_data);
         $db->exec("COMMIT");
     } catch (Throwable $e) {
@@ -138,6 +139,10 @@ function push_all_round_data_database($db, $group_id, $round_data)
                     }
                     $result_id = SubmitScore($db, $round_id, $person_id, $hole_num, $wordle_num, $score, $total, $update_scores);
                 }
+                if ($k > 0) {
+                    // Has scores in this round, so is one of the people playing it
+                    add_round_player($db, $round_id, $person_id);
+                }
                 // Do something with the total
                 $this_round_final_scores[] = array(
                     'first_name' => $first_name,
@@ -159,9 +164,15 @@ function push_all_round_data_database($db, $group_id, $round_data)
     return $ret_value;
 }
 
+// A group code is up to 40 letters, numbers, spaces, dots, dashes or underscores
+function valid_group_code($code)
+{
+    return (bool)preg_match('/^[\p{L}\p{N}_. -]{1,40}$/u', $code);
+}
+
 // Find the group with this code, creating it if it is new. A non-blank name replaces the stored name;
-// a new group with no name is called by its code.
-function GetGroupID($db, $code, $name = '')
+// a new group with no name is called by its code. A new group is given $password_hash to edit it with.
+function GetGroupID($db, $code, $name = '', $password_hash = null)
 {
     $name = trim($name);
     $group = db_row($db, "SELECT id, name FROM w_groups WHERE code = :code", array(':code' => $code));
@@ -175,8 +186,8 @@ function GetGroupID($db, $code, $name = '')
         if ($name === '') {
             $name = $code;
         }
-        $id = db_run($db, "INSERT INTO w_groups (code, name, created_at) VALUES (:code, :name, :created)",
-            array(':code' => $code, ':name' => $name, ':created' => date('Y-m-d H:i:s')));
+        $id = db_run($db, "INSERT INTO w_groups (code, name, created_at, edit_password_hash) VALUES (:code, :name, :created, :hash)",
+            array(':code' => $code, ':name' => $name, ':created' => date('Y-m-d H:i:s'), ':hash' => $password_hash));
     }
 
     return $id;
@@ -196,6 +207,13 @@ function GetPersonID($db, $group_id, $first_name, $family_name)
     }
 
     return $id;
+}
+
+// Add a person to the people playing a round
+function add_round_player($db, $round_id, $person_id)
+{
+    db_run($db, "INSERT OR IGNORE INTO w_round_players (round_id, person_id) VALUES (:round_id, :person_id)",
+        array(':round_id' => $round_id, ':person_id' => $person_id));
 }
 
 function GetRoundID($db, $group_id, $round_num, $wordle_start_num, $wordle_start_date, $par)
