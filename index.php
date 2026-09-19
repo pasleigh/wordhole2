@@ -45,6 +45,7 @@ if ($show_upload_block) {
                 <div class="text-center">
                     <i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 48px;"></i>
                     <p class="mt-3">Drag and drop your Excel file here or click to select a file.</p>
+                    <p class="text-muted small">Cell A2 of each round sheet holds your group's code and A3 its name.</p>
                 </div>
             </div>
             <input type="file" id="fileElem" multiple accept=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel,text/comma-separated-values, text/csv, application/csv" class="d-none">
@@ -69,7 +70,14 @@ if ($show_upload_block) {
 <body>
 <div class="container">
     <h2>Wordhole Record of Rounds</h2>
-    <div class="row>">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="form-group">
+                <label for="group_select">Select a group</label>
+                <select id="group_select" class="form-select" aria-label="Select a group to show">
+                </select>
+            </div>
+        </div>
         <div class="col-md-3">
             <div class="form-group">
                 <label for="round_select">Select a round</label>
@@ -78,7 +86,7 @@ if ($show_upload_block) {
                 </select>
             </div>
         </div>
-        <div class="col-md-9"></div>
+        <div class="col-md-6"></div>
     </div>
     <div id="par_chart_container" style="height: 600px;"></div>
     <BR>
@@ -111,11 +119,11 @@ if ($show_upload_block) {
         integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
 <script src="./js/load_xlsx.js"></script>
 <script src="./js/mycharts.js"></script>
-<script src="https://code.highcharts.com/highcharts.js"></script>
-<script src="https://code.highcharts.com/modules/series-label.js"></script>
-<script src="https://code.highcharts.com/modules/exporting.js"></script>
-<script src="https://code.highcharts.com/modules/export-data.js"></script>
-<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+<script src="./frameworks/highcharts_12_4_0/highcharts.js"></script>
+<script src="./frameworks/highcharts_12_4_0/series-label.js"></script>
+<script src="./frameworks/highcharts_12_4_0/exporting.js"></script>
+<script src="./frameworks/highcharts_12_4_0/export-data.js"></script>
+<script src="./frameworks/highcharts_12_4_0/accessibility.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
 <script src="./frameworks/jspreadsheets/jspreadsheet.js"></script>
 <link rel="stylesheet" href="./frameworks/jspreadsheets/jspreadsheet.css" type="text/css"/>
@@ -125,90 +133,96 @@ if ($show_upload_block) {
 <script>
     let dropArea = document.getElementById("drop-area");
 
-    ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
-        dropArea.addEventListener(eventName, preventDefaults, false);
-        document.body.addEventListener(eventName, preventDefaults, false);
-    });
+    // The drop box is only on the page when it is opened with ?upload
+    if (dropArea) {
 
-    ["dragenter", "dragover"].forEach((eventName) => {
-        dropArea.addEventListener(eventName, highlight, false);
-    });
+        ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
 
-    ["dragleave", "drop"].forEach((eventName) => {
-        dropArea.addEventListener(eventName, unhighlight, false);
-    });
+        ["dragenter", "dragover"].forEach((eventName) => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
 
-    dropArea.addEventListener("drop", handleDrop, false);
+        ["dragleave", "drop"].forEach((eventName) => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
 
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
+        dropArea.addEventListener("drop", handleDrop, false);
 
-    function highlight(e) {
-        dropArea.classList.add("highlight");
-    }
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
 
-    function unhighlight(e) {
-        dropArea.classList.remove("highlight");
-    }
+        function highlight(e) {
+            dropArea.classList.add("highlight");
+        }
 
-    function handleDrop(e) {
-        let dt = e.dataTransfer;
-        let files = dt.files;
-        handleFiles(files);
-    }
+        function unhighlight(e) {
+            dropArea.classList.remove("highlight");
+        }
 
-    function handleFiles(files) {
-        [...files].forEach(uploadFile);
-    }
+        function handleDrop(e) {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+            handleFiles(files);
+        }
 
-    function uploadFile(file) {
-        console.log("Uploading", file.name);
-        var form_data = new FormData();
-        form_data.append('file', file);
-        //alert(form_data);
-        document.body.style.cursor = 'wait';
-        document. getElementById("drop-area"). style. cursor = 'wait';
-        $.ajax({
-            url: 'upload_excel.php', // <-- point to server-side PHP script
-            dataType: 'json',  // <-- what to expect back from the PHP script, if anything
-            cache: false,
-            contentType: false,
-            processData: false,
-            data: form_data,
-            type: 'post',
-            success: function(php_script_response){
-                //alert(php_script_response); // <-- display response from the PHP script, if any
-                console.log("Sever response ", JSON.stringify(php_script_response));
-                document.body.style.cursor = 'default';
-                document. getElementById("drop-area"). style. cursor = 'pointer';
-                //alert("Success loading the Excel file.");
-                window.location.href = 'index.php?upload'
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(xhr.status);
-                console.log(xhr.responseText);
-                console.log(thrownError);
-                document.body.style.cursor = 'default';
-                document. getElementById("drop-area"). style. cursor = 'pointer';
-                alert("There was an error loading the Excel file.");
-            }
+        function handleFiles(files) {
+            [...files].forEach(uploadFile);
+        }
+
+        function uploadFile(file) {
+            console.log("Uploading", file.name);
+            var form_data = new FormData();
+            form_data.append('file', file);
+            //alert(form_data);
+            document.body.style.cursor = 'wait';
+            document. getElementById("drop-area"). style. cursor = 'wait';
+            $.ajax({
+                url: 'upload_excel.php', // <-- point to server-side PHP script
+                dataType: 'json',  // <-- what to expect back from the PHP script, if anything
+                cache: false,
+                contentType: false,
+                processData: false,
+                data: form_data,
+                type: 'post',
+                success: function(php_script_response){
+                    //alert(php_script_response); // <-- display response from the PHP script, if any
+                    console.log("Sever response ", JSON.stringify(php_script_response));
+                    document.body.style.cursor = 'default';
+                    document. getElementById("drop-area"). style. cursor = 'pointer';
+                    //alert("Success loading the Excel file.");
+                    // Show the group the workbook was for
+                    window.location.href = 'index.php?upload&g=' + encodeURIComponent(php_script_response.group_code)
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(xhr.status);
+                    console.log(xhr.responseText);
+                    console.log(thrownError);
+                    document.body.style.cursor = 'default';
+                    document. getElementById("drop-area"). style. cursor = 'pointer';
+                    let reason = (xhr.responseJSON && xhr.responseJSON.message) ? "\n\n" + xhr.responseJSON.message : "";
+                    alert("There was an error loading the Excel file." + reason);
+                }
+            });
+        }
+
+        dropArea.addEventListener("click", () => {
+            fileElem.click();
+        });
+
+        let fileElem = document.getElementById("fileElem");
+        fileElem.addEventListener("change", function (e) {
+            handleFiles(this.files);
         });
     }
-
-    dropArea.addEventListener("click", () => {
-        fileElem.click();
-    });
-
-    let fileElem = document.getElementById("fileElem");
-    fileElem.addEventListener("change", function (e) {
-        handleFiles(this.files);
-    });
 </script>
 <script>
     $(document).ready(function () {
-        load_wordle_data('par_chart_container','column_chart_container');
+        load_groups('par_chart_container','column_chart_container');
     });
 </script>
 </body>

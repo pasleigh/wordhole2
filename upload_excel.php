@@ -1,175 +1,45 @@
 <?php
 (@include_once("./database_functions.php")) or die("Cannot read database_functions.php file<BR>");
+(@include_once("./parse_workbook.php")) or die("Cannot read parse_workbook.php file<BR>");
 
-$reload_main = 0;
-$reload_main = 1; // 1 = reload all
-
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Shared\Date;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-
-require_once './vendor/autoload.php';
-
-function getDateStrFromCell($worksheet, $row, $col, $date_format = 'd-m-Y')
-{
-    $cellDataType = $worksheet->getCell([$col, $row])->getDataType();
-    if ($cellDataType == 'n') {
-        // Date format
-        $mydate = $worksheet->getCell([$col, $row])->getValue();
-        $mydate = Date::excelToDateTimeObject($mydate);
-        $mydate_str = $mydate->format($date_format); // 02-09-1963
-        //$intro_week_s2 = $intro_week_sd->format('j/M/Y'); // 2/sep/163
-    } elseif ($cellDataType == 'f') {
-        // Formula (hopefully a date)
-        $mydate = $worksheet->getCell([$col, $row])->getOldCalculatedValue();
-        $mydate = Date::excelToDateTimeObject($mydate);
-        $mydate_str = $mydate->format($date_format); // 02-09-1963
-    } else {
-        // let just take the value
-        $mydate_str = $worksheet->getCell([$col, $row])->getValue();
-    }
-    return $mydate_str;
-}
-
-
-
-$msg = "";
-if (isset($_FILES)) {
-    foreach($_FILES as $file){
-        $filename = $file['tmp_name'];
-        $file_info = $filename;
-
-        $PHP_EXCEL_filetype = IOFactory::identify($filename);
-        $file_info = "PHPSpreadsheet file type: $PHP_EXCEL_filetype<BR>";
-
-        $objPHPExcelModules = IOFactory::load($filename);
-        $num_modules = $objPHPExcelModules->getSheetCount();
-        $round_data = array();
-
-
-
-        foreach ($objPHPExcelModules->getWorksheetIterator() as $worksheet) {
-            $worksheet_name = $worksheet->getTitle();
-            $highestRow = $worksheet->getHighestRow();
-            $highestCol = $worksheet->getHighestColumn();
-            $highestColIndex = Coordinate::columnIndexFromString($highestCol);
-            $nrColumns = ord($highestCol) - 64;
-
-            // Get the par from row 1, col 2
-            $row = 1;
-            $col = 2; // columns are now 1 based
-            $myString = $worksheet->getCell([$col, $row])->getValue();
-            $par = $myString;
-
-            // Get the date of the first wordle
-            $row = 1;
-            $col = 3; // columns are now 1 based
-            $myString = getDateStrFromCell($worksheet, $row, $col);//'d-m-Y == 24-09-1963
-            $start_date = $myString;
-            $start_date2 = getDateStrFromCell($worksheet, $row, $col);
-
-            // Get the wordle number of the first one
-            $row = 2;
-            $col = 3; // columns are now 1 based
-            $myString = $worksheet->getCell([$col, $row])->getValue();
-            $start_wordle = $myString;
-
-            $results = array();
-
-            $num_holes = 18;
-            $start_row = 4;
-            $num_start_col = 3;
-
-            // Find the mean row
-            $mean_row = 0;
-            for ($row = $start_row; $row < 100; $row++) {
-                $col = 2;
-                $mean_text = $worksheet->getCell([$col, $row])->getValue();
-                if ($mean_text === 'Mean') {
-                    $mean_row = $row;
-                    break;
-                }
-            }
-            // Get the names and scores
-            for ($row = $start_row; $row < 100; $row++) {
-                $col = 1;
-                $first_name = $worksheet->getCell([$col, $row])->getValue();
-                if ($first_name === null) {
-                    break;
-                }
-                if (trim($first_name) == "") {
-                    break;
-                }
-                $col++;
-                $family_name = $worksheet->getCell([$col, $row])->getValue();
-                $scores = array();
-                for ($i = 1; $i <= 18; $i++) {
-                    $col = $num_start_col + ($i - 1) * 3;
-                    $myString = $worksheet->getCell([$col, $row])->getValue();
-                    if ($myString == "") {
-                        $scores[] = null;
-                    } else {
-                        $scores[] = floatval($myString);
-                    }
-                }
-                $results[] = array(
-                    'first_name' => $first_name,
-                    'family_name' => $family_name,
-                    'scores' => $scores
-                );
-            }
-            // Get the means and wordle words
-            $mean_scores = array();
-            $wordle_words = array();
-            $row = $mean_row;
-            for ($i = 1; $i <= 18; $i++) {
-                $col = $num_start_col + ($i - 1) * 3;
-                $myString = $worksheet->getCell([$col, $row])->getOldCalculatedValue();
-                if ($myString == "") {
-                    $mean_scores[] = null;
-                } else {
-                    $mean_scores[] = floatval($myString);
-                }
-                //echo("mystring: $myString.<BR>");
-                //var_dump($mean_scores);
-                // Get teh wordle word
-                $myString = $worksheet->getCell([$col, $row+1])->getValue();
-                $wordle_words[] = $myString;
-            }
-
-            $round_data[] = array(
-                'start_date' => $start_date,
-                'start_date_d-m-Y' => $start_date2,
-                'start_wordle' => $start_wordle,
-                'par' => $par,
-                'results' => $results,
-                'mean_scores' => $mean_scores,
-                'wordle_words' => $wordle_words,
-                'name' => $worksheet_name
-            );
-
-            // only do the first worksheet
-            //break;
-        }
-
-        push_all_round_data_database($db, $round_data);
-
-        $message = "Success";
-        $is_valid = 1;
-
-
-        $return_data = array(
-            'round_data' => $round_data,
-            'message' => $message,
-            'file_info' => $file_info,
-            'file_name' => $filename,
-            'is_valid' => $is_valid
-        );
+// The workbook says which group it is for (cell A2), so there is no group to choose when uploading
+try {
+    $file = null;
+    foreach ($_FILES as $this_file) {
+        $file = $this_file;
         break; // only do one file
     }
+    if ($file === null) {
+        throw new WorkbookException("No file was uploaded.");
+    }
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        throw new WorkbookException("The file could not be uploaded (error code " . $file['error'] . ").");
+    }
+
+    $filename = $file['tmp_name'];
+    try {
+        $workbook = parse_workbook($filename);
+    } catch (WorkbookException $e) {
+        throw $e;
+    } catch (Throwable $e) {
+        throw new WorkbookException("This does not look like a Wordhole Excel workbook: " . $e->getMessage());
+    }
+
+    $group = import_workbook_data($db, $workbook['group_code'], $workbook['group_name'], $workbook['round_data']);
+
+    $return_data = array(
+        'round_data' => $workbook['round_data'],
+        'group_id' => $group['id'],
+        'group_code' => $group['code'],
+        'group_name' => $group['name'],
+        'message' => "Success",
+        'file_info' => $workbook['file_info'],
+        'file_name' => $filename,
+        'is_valid' => 1
+    );
+} catch (WorkbookException $e) {
+    json_fail($e->getMessage(), 400);
+} catch (Throwable $e) {
+    json_fail("The results could not be saved: " . $e->getMessage(), 500);
 }
 echo json_encode($return_data);
-?>
-
-

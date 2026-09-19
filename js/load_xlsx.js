@@ -4,6 +4,27 @@ var current_par
 var current_round_num
 var current_round_id
 var current_round_wordle_start_num
+// current_round_id is the position of the round in all_rounds_data; the database id is separate
+var current_round_db_id
+var current_group_id
+var current_group_name = ""
+var all_groups = []
+const GROUP_STORAGE_KEY = 'wordhole_group_code'
+
+function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, function (c) {
+        return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]
+    })
+}
+
+// "Wordhole" or "Wordhole - <group name>" for the chart titles
+function wordhole_title(suffix) {
+    let title = "Wordhole" + (suffix ? " " + suffix : "")
+    if (current_group_name) {
+        title += " - " + escapeHtml(current_group_name)
+    }
+    return title
+}
 
 $('#round_select').on('change', function () {
     var i = $(this).find(":selected").val();
@@ -16,6 +37,7 @@ $('#round_select').on('change', function () {
     current_par = selected_round_data.par
     current_round_num = selected_round_data.round_num
     current_round_wordle_start_num = selected_round_data.start_wordle
+    current_round_db_id = selected_round_data.round_id
 
     let chart_container_id = 'par_chart_container';
     let column_chart_container_id = 'column_chart_container';
@@ -32,10 +54,8 @@ function push_table_data_to_sqlite(){
     let alldata = summary_table.getData()
     var form_data = new FormData();
     form_data.append('data', JSON.stringify(alldata));
-    form_data.append('round_id',current_round_id+1 );
-    form_data.append('round_num',current_round_num );
-    form_data.append('wordle_start_num',current_round_wordle_start_num );
-    form_data.append('par',current_par );
+    form_data.append('round_id', current_round_db_id);
+    form_data.append('group_id', current_group_id);
     $.ajax({
         type: 'post',
         url: './push_table_data_to_sqlite.php',
@@ -59,20 +79,10 @@ function push_table_data_to_sqlite(){
             updateTable(all_rounds_data[current_round_id])
 
              */
-            load_wordle_data('par_chart_container')
+            load_wordle_data('par_chart_container', 'column_chart_container', current_group_id)
             alert("submitted to database")
         },
-        error: function (jqXHR, textStatus, errorThrown) {
-            alert('An error occurred... Look at the console (F12 or Ctrl+Shift+I, Console tab) for more information!');
-            console.log('jqXHR.responseText');
-            console.log(jqXHR.responseText);
-            console.log('jqXHR:');
-            console.log(jqXHR);
-            console.log('textStatus:');
-            console.log(textStatus);
-            console.log('errorThrown:');
-            console.log(errorThrown);
-        }
+        error: report_ajax_error
     })
 }
 
@@ -204,7 +214,99 @@ var table_def = {
     onchange: cell_changed
 }
 
-function load_wordle_data(chart_container_id, column_chart_container_id) {
+// Fill the group dropdown, choose the group to start on and show its results.
+// The group comes from the g=<code> in the page address, else the one used last time, else the first.
+function load_groups(chart_container_id, column_chart_container_id) {
+    $.ajax({
+        type: 'post',
+        url: './load_groups.php',
+        contentType: false,
+        processData: false,
+        dataType: "json",
+        success: function (mydata) {
+            all_groups = mydata.groups
+            let select = $('#group_select').empty()
+            for (let i = 0; i < all_groups.length; i++) {
+                select.append($('<option>').val(all_groups[i].id).text(all_groups[i].name))
+            }
+            if (all_groups.length === 0) {
+                show_no_rounds("No results have been uploaded yet.")
+                return
+            }
+
+            let wanted_code = new URLSearchParams(window.location.search).get('g')
+            if (wanted_code === null) {
+                try {
+                    wanted_code = localStorage.getItem(GROUP_STORAGE_KEY)
+                } catch (e) {
+                    wanted_code = null
+                }
+            }
+            let group = all_groups[0]
+            for (let i = 0; i < all_groups.length; i++) {
+                if (wanted_code !== null && all_groups[i].code.toLowerCase() === wanted_code.toLowerCase()) {
+                    group = all_groups[i]
+                }
+            }
+            select.val(group.id)
+            select_group(group, chart_container_id, column_chart_container_id)
+        },
+        error: report_ajax_error
+    })
+}
+
+// Make this group the one shown: remember it, put it in the page address and load its results
+function select_group(group, chart_container_id, column_chart_container_id) {
+    current_group_id = group.id
+    current_group_name = group.name
+    try {
+        localStorage.setItem(GROUP_STORAGE_KEY, group.code)
+    } catch (e) {
+        // remembering the group is only a convenience
+    }
+    let url = new URL(window.location.href)
+    url.searchParams.set('g', group.code)
+    window.history.replaceState(null, '', url)
+    load_wordle_data(chart_container_id, column_chart_container_id, group.id)
+}
+
+$('#group_select').on('change', function () {
+    let group_id = $(this).val()
+    for (let i = 0; i < all_groups.length; i++) {
+        if (String(all_groups[i].id) === String(group_id)) {
+            select_group(all_groups[i], 'par_chart_container', 'column_chart_container')
+        }
+    }
+})
+
+// Nothing to chart: clear the page and say why
+function show_no_rounds(message) {
+    all_rounds_data = []
+    current_round_db_id = null
+    $('#round_select').empty()
+    $('#par_chart_container').empty()
+    $('#column_chart_container').empty()
+    $('#body-title').empty()
+    $('#jspreadsheet_wordle_data').empty()
+    $('#scores').html("<p class='text-muted mt-3'>" + escapeHtml(message) + "</p>")
+}
+
+function report_ajax_error(jqXHR, textStatus, errorThrown) {
+    let reason = (jqXHR.responseJSON && jqXHR.responseJSON.message) ? "\n\n" + jqXHR.responseJSON.message : ""
+    alert('An error occurred... Look at the console (F12 or Ctrl+Shift+I, Console tab) for more information!' + reason)
+    console.log('jqXHR.responseText');
+    console.log(jqXHR.responseText);
+    console.log('jqXHR:');
+    console.log(jqXHR);
+    console.log('textStatus:');
+    console.log(textStatus);
+    console.log('errorThrown:');
+    console.log(errorThrown);
+}
+
+function load_wordle_data(chart_container_id, column_chart_container_id, group_id) {
+    var form_data = new FormData();
+    form_data.append('group_id', group_id);
     $.ajax({
         type: 'post',
         //url: 'test_pwd.php',
@@ -214,11 +316,16 @@ function load_wordle_data(chart_container_id, column_chart_container_id) {
         url: './load_sqlite.php',
         contentType: false,
         processData: false,
+        data: form_data,
         dataType: "json",
         success: function (mydata) {
             //
             //console.log(JSON.stringify(mydata));
             if (mydata.is_valid == 1) {
+                if (mydata.round_data.length === 0) {
+                    show_no_rounds("No rounds have been uploaded for " + mydata.group.name + " yet.")
+                    return
+                }
                 let html = ""
                 for (let i = 0; i < mydata.round_data.length; i++) {
                     html += "<option value='" + i + "'>" + mydata.round_data[i].name + "</option>";
@@ -240,9 +347,10 @@ function load_wordle_data(chart_container_id, column_chart_container_id) {
                 current_par = selected_round_data.par
                 current_round_num = selected_round_data.round_num
                 current_round_wordle_start_num = selected_round_data.start_wordle
+                current_round_db_id = selected_round_data.round_id
 
                 if (document.getElementById('jspreadsheet_wordle_data')) {
-                    $('#body-title').html("<h5>Wordhole round number " + current_round_num + "</h5>")
+                    $('#body-title').html("<h5>" + escapeHtml(current_group_name) + " - Wordhole round number " + current_round_num + "</h5>")
                     let start_date = selected_round_data.start_date
                     let start_date_split = start_date.split("-")
                     let start_date_d = new Date(start_date_split[2], parseInt(start_date_split[1]) - 1, start_date_split[0], 0, 0, 0)
@@ -274,17 +382,7 @@ function load_wordle_data(chart_container_id, column_chart_container_id) {
 
             }
         },
-        error: function (jqXHR, textStatus, errorThrown) {
-            alert('An error occurred... Look at the console (F12 or Ctrl+Shift+I, Console tab) for more information!');
-            console.log('jqXHR.responseText');
-            console.log(jqXHR.responseText);
-            console.log('jqXHR:');
-            console.log(jqXHR);
-            console.log('textStatus:');
-            console.log(textStatus);
-            console.log('errorThrown:');
-            console.log(errorThrown);
-        }
+        error: report_ajax_error
     })
 }
 
@@ -294,7 +392,7 @@ function draw_par_chart(score_data, container_id) {
     let par = parseInt(score_data.par);
     let start_wordle_num = parseInt(score_data.start_wordle);
 
-    myChart.title.text = "Wordhole";
+    myChart.title.text = wordhole_title();
     let subtitle_text = score_data.name + ". First hole (" + score_data.start_wordle + ") " + score_data.start_date;
     myChart.subtitle.text = subtitle_text;
 
@@ -364,7 +462,7 @@ function draw_column_chart(score_data, container_id) {
     let par = parseInt(score_data.par);
     let start_wordle_num = parseInt(score_data.start_wordle);
 
-    myChart.title.text = "Wordhole Mean Scores";
+    myChart.title.text = wordhole_title("Mean Scores");
     let subtitle_text = score_data.name + ". First hole (" + score_data.start_wordle + ") " + score_data.start_date;
     myChart.subtitle.text = subtitle_text;
 
