@@ -3,7 +3,9 @@
 (@include_once("./create_sqlite_tables.php")) or die("Cannot read create_sqlite_tables.php file<BR>");
 (@include_once("./database_functions.php")) or die("Cannot read database_functions.php file<BR>");
 (@include_once("./auth.php")) or die("Cannot read auth.php file<BR>");
-
+/**
+ * @var $db // from create_sqlite_tables
+ */
 // A hidden group is left out of the list unless its code is given (as include_code): it is still open by its link
 $include_code = isset($_POST['include_code']) ? trim((string)$_POST['include_code']) : '';
 

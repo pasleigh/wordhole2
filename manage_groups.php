@@ -7,6 +7,9 @@
 //   php manage_groups.php hide <code>                leave a group out of the group list (its link still works)
 //   php manage_groups.php unhide <code>              show a hidden group in the group list again
 // This is a command line tool only; it cannot be used from a web page.
+/**
+ * @var $db // from create_sqlite_tables
+ */
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;

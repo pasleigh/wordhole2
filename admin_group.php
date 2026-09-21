@@ -1,6 +1,8 @@
 <?php
 (@include_once("./auth.php")) or die("Cannot read auth.php file<BR>");
-
+/**
+ * @var $db // from create_sqlite_tables
+ */
 // Super admin only: rename a group and/or hide it from (or show it in) the group list.
 // Send admin_password, group_id and name and/or hidden (1 = hide, 0 = show).
 // A hidden group is not deleted: its results are kept and its link still works.
