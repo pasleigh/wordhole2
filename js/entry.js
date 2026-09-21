@@ -255,6 +255,7 @@
         box.append(toolbarButton(state.editing ? 'Stop entering scores' : '<i class="bi bi-pencil"></i> Enter scores',
             state.editing ? 'btn-primary active' : 'btn-primary', toggleEditing))
         box.append(toolbarButton('<i class="bi bi-plus-lg"></i> New round', 'btn-outline-primary', openNewRound))
+        box.append(toolbarButton('<i class="bi bi-person-lines-fill"></i> Members', 'btn-outline-primary', openMembers))
         box.append($('<a class="btn btn-sm btn-outline-secondary">').attr('href', 'index.php?upload&g=' + encodeURIComponent(current_group_code))
             .html('<i class="bi bi-cloud-arrow-up"></i> Upload workbook'))
         box.append(toolbarButton('Change password', 'btn-outline-secondary', openChangePassword))
@@ -814,6 +815,176 @@
             },
             error: function (xhr) {
                 showModalError('#password_error', xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'The password could not be changed.')
+            }
+        })
+    })
+
+    // ---------------------------------------------------------------- the members of the group
+
+    // One entry per person in the dialog: id, name, and whether they are playing the round shown.
+    // New members have no id yet.
+    let members = []
+
+    function scoredInRound(personId) {
+        const person = state.round ? state.round.results.find(function (p) { return p.person_id === personId }) : null
+        return !!person && person.scores.some(function (s) { return s !== null })
+    }
+
+    function openMembers() {
+        if (!window.wh_confirm_leave()) {
+            return
+        }
+        const playing = {}
+        if (state.round) {
+            state.round.results.forEach(function (person) {
+                playing[person.person_id] = true
+            })
+        }
+        members = group_people.map(function (person) {
+            return {
+                id: person.id, first: person.first_name, family: person.family_name,
+                origFirst: person.first_name, origFamily: person.family_name,
+                roundsPlayed: Number(person.rounds_played),
+                inRound: !!playing[person.id], origInRound: !!playing[person.id],
+                scoredInRound: scoredInRound(person.id),
+                remove: false, isNew: false
+            }
+        })
+        $('#members_title').text('Members of ' + current_group_name)
+        $('#members_round_head').text(state.round ? 'Playing ' + state.round.name : '').prop('hidden', !state.round)
+        $('#members_help').text('Correct names, add people who have joined and choose who is playing'
+            + (state.round ? ' ' + state.round.name : ' each round') + '. Someone who has scores cannot be removed from the group, '
+            + 'or taken out of a round they have scored in. Workbook uploads match people by exact name, so change the name in your workbook too.')
+        showModalError('#members_error', '')
+        renderMembers()
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('members_modal')).show()
+    }
+
+    function renderMembers() {
+        const body = $('#members_rows').empty()
+        members.forEach(function (member, index) {
+            const row = $('<tr>').attr('data-index', index).toggleClass('text-decoration-line-through opacity-50', member.remove)
+            row.append($('<td>').append($('<input type="text" class="form-control form-control-sm member-first" maxlength="60" autocomplete="off">')
+                .val(member.first).prop('disabled', member.remove).attr('aria-label', 'First name')))
+            row.append($('<td>').append($('<input type="text" class="form-control form-control-sm member-family" maxlength="60" autocomplete="off">')
+                .val(member.family).prop('disabled', member.remove).attr('aria-label', 'Family name')))
+            row.append($('<td class="text-center text-muted">').text(member.isNew ? '' : member.roundsPlayed))
+            const cell = $('<td class="text-center">').prop('hidden', !state.round)
+            cell.append($('<input type="checkbox" class="form-check-input member-in-round">').prop('checked', member.inRound)
+                .prop('disabled', member.remove || member.scoredInRound)
+                .attr('title', member.scoredInRound ? 'Has scores in this round' : '').attr('aria-label', 'Playing this round'))
+            row.append(cell)
+            const action = $('<td class="text-end text-nowrap">')
+            if (member.isNew) {
+                action.append($('<button type="button" class="btn btn-sm btn-link text-danger member-remove">').text('Delete row'))
+            } else if (member.roundsPlayed > 0) {
+                action.append($('<span class="small text-muted">').text('Has scores').attr('title', 'Someone with scores cannot be removed'))
+            } else {
+                action.append($('<button type="button" class="btn btn-sm btn-link member-remove">').text(member.remove ? 'Undo' : 'Remove')
+                    .toggleClass('text-danger', !member.remove))
+            }
+            row.append(action)
+            body.append(row)
+        })
+        if (members.length === 0) {
+            body.append($('<tr>').append($('<td colspan="5" class="text-muted small">').text('Nobody yet. Add the first member below.')))
+        }
+    }
+
+    $('#members_rows').on('input', '.member-first', function () {
+        members[$(this).closest('tr').data('index')].first = this.value
+    })
+
+    $('#members_rows').on('input', '.member-family', function () {
+        members[$(this).closest('tr').data('index')].family = this.value
+    })
+
+    $('#members_rows').on('change', '.member-in-round', function () {
+        members[$(this).closest('tr').data('index')].inRound = this.checked
+    })
+
+    $('#members_rows').on('click', '.member-remove', function () {
+        const index = $(this).closest('tr').data('index')
+        if (members[index].isNew) {
+            members.splice(index, 1)
+        } else {
+            members[index].remove = !members[index].remove
+        }
+        renderMembers()
+    })
+
+    $('#members_add').on('click', function () {
+        members.push({id: null, first: '', family: '', roundsPlayed: 0, inRound: !!state.round, origInRound: false,
+            scoredInRound: false, remove: false, isNew: true})
+        renderMembers()
+        $('#members_rows tr:last-child .member-first').trigger('focus')
+    })
+
+    // What has been changed in the dialog, in the form save_members.php expects
+    function memberChanges() {
+        const payload = {rename: [], add: [], remove: [], round_add: [], round_remove: []}
+        if (state.round) {
+            payload.round_id = state.round.round_id
+        }
+        members.forEach(function (member) {
+            if (member.isNew) {
+                if (member.first.trim() !== '' || member.family.trim() !== '') {
+                    payload.add.push({first_name: member.first, family_name: member.family, in_round: member.inRound})
+                }
+            } else if (member.remove) {
+                payload.remove.push(member.id)
+            } else {
+                if (member.first !== member.origFirst || member.family !== member.origFamily) {
+                    payload.rename.push({person_id: member.id, first_name: member.first, family_name: member.family})
+                }
+                if (member.inRound && !member.origInRound) {
+                    payload.round_add.push(member.id)
+                } else if (!member.inRound && member.origInRound) {
+                    payload.round_remove.push(member.id)
+                }
+            }
+        })
+        return payload
+    }
+
+    $('#members_modal').on('shown.bs.modal', function () {
+        $('#members_rows .member-first').first().trigger('focus')
+    })
+
+    $('#members_form').on('submit', function (e) {
+        e.preventDefault()
+        const payload = memberChanges()
+        const nothing = ['rename', 'add', 'remove', 'round_add', 'round_remove'].every(function (key) {
+            return payload[key].length === 0
+        })
+        if (nothing) {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('members_modal')).hide()
+            return
+        }
+        const form_data = new FormData()
+        form_data.append('group_id', current_group_id)
+        form_data.append('payload', JSON.stringify(payload))
+        $.ajax({
+            type: 'post',
+            url: './save_members.php',
+            contentType: false,
+            processData: false,
+            data: form_data,
+            dataType: 'json',
+            success: function () {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('members_modal')).hide()
+                // Reload the group so the names, the lists and the scorecard all show the change
+                load_wordle_data(current_group_id, state.round ? state.round.round_id : undefined)
+            },
+            error: function (xhr) {
+                if (xhr.status === 401) {
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('members_modal')).hide()
+                    state.canEdit = false
+                    renderAll()
+                    openLogin('Your login has expired. Log in again, then change the members.')
+                    return
+                }
+                showModalError('#members_error', xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'The members could not be saved.')
             }
         })
     })

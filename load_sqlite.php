@@ -28,7 +28,9 @@ try {
     }
 
     // Everybody who has played in this group (the people playing each round are in that round's results)
-    $people = db_rows($db, "SELECT id, first_name, family_name FROM w_people WHERE group_id = :group_id ORDER BY id",
+    $people = db_rows($db, "SELECT p.id, p.first_name, p.family_name,
+                                   (SELECT COUNT(DISTINCT r.round_id) FROM w_results r WHERE r.person_id = p.id) AS rounds_played
+                            FROM w_people p WHERE p.group_id = :group_id ORDER BY p.id",
         array(':group_id' => $group_id));
 
     // Whether this browser has unlocked the group for editing

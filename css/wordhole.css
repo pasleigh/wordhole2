@@ -95,14 +95,21 @@
     font-weight: 600;
 }
 
-/* Score colours, compared with par (par 4: 1-2 great, 3 good, 4 par, 5 over, 6 bad) */
-.s-great { background: #8fd19e; color: #0b3d1a; }
-.s-good  { background: #d1ecd7; color: #14532d; }
-.s-par   { background: #fff; }
-.s-over  { background: #fde8c8; color: #7a4a00; }
-.s-bad   { background: #f7c6c6; color: #7f1d1d; }
-.s-fail  { background: #e4606d; color: #fff; }
-.s-none  { background: #e9ecef; color: #6c757d; }
+/* Score colours, compared with par (par 4: 1-2 great, 3 good, 4 par, 5 over, 6 bad).
+   Used by the legend and, with "td" in front so that they beat Bootstrap's table cell colours, by the scorecard. */
+.s-great, .wh-table td.s-great { background: #5fbf78; color: #06301a; }
+.s-good,  .wh-table td.s-good  { background: #c4e8cd; color: #14532d; }
+.s-par,   .wh-table td.s-par   { background: #dbe8fb; color: #1e3a5f; }
+.s-over,  .wh-table td.s-over  { background: #fbd9a0; color: #6b3f00; }
+.s-bad,   .wh-table td.s-bad   { background: #f19a9a; color: #5c1010; }
+.s-fail,  .wh-table td.s-fail  { background: #c81e3a; color: #fff; }
+.s-none,  .wh-table td.s-none  { background: #adb5bd; color: #212529; }
+
+/* Coloured cells sit side by side, so give them a hairline of white between them */
+.wh-table td.wh-cell {
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+}
 
 /* Typing into the scorecard */
 .wh-input {
@@ -132,8 +139,10 @@
     height: 1.8rem;
 }
 
-.wh-dirty {
-    box-shadow: inset 0 0 0 2px #ffc107;
+/* Changed but not saved (needs "td" to beat Bootstrap's table cell shadow) */
+.wh-dirty,
+.wh-table td.wh-dirty {
+    box-shadow: inset 0 0 0 3px #ffc107;
 }
 
 /* Bar shown while there are changes that have not been saved */
@@ -181,13 +190,13 @@ body.wh-has-savebar {
     font-weight: 600;
 }
 
-.wh-daily-row .btn-check:checked + .btn.s-great-btn { background: #8fd19e; border-color: #5fb977; color: #0b3d1a; }
-.wh-daily-row .btn-check:checked + .btn.s-good-btn  { background: #d1ecd7; border-color: #9ccfae; color: #14532d; }
-.wh-daily-row .btn-check:checked + .btn.s-par-btn   { background: #0d6efd; border-color: #0d6efd; color: #fff; }
-.wh-daily-row .btn-check:checked + .btn.s-over-btn  { background: #fde8c8; border-color: #f0c98d; color: #7a4a00; }
-.wh-daily-row .btn-check:checked + .btn.s-bad-btn   { background: #f7c6c6; border-color: #e79a9a; color: #7f1d1d; }
-.wh-daily-row .btn-check:checked + .btn.s-fail-btn  { background: #e4606d; border-color: #e4606d; color: #fff; }
-.wh-daily-row .btn-check:checked + .btn.s-none-btn  { background: #6c757d; border-color: #6c757d; color: #fff; }
+.wh-daily-row .btn-check:checked + .btn.s-great-btn { background: #5fbf78; border-color: #4aa863; color: #06301a; }
+.wh-daily-row .btn-check:checked + .btn.s-good-btn  { background: #c4e8cd; border-color: #93cba3; color: #14532d; }
+.wh-daily-row .btn-check:checked + .btn.s-par-btn   { background: #9dbff2; border-color: #7fa6e0; color: #1e3a5f; }
+.wh-daily-row .btn-check:checked + .btn.s-over-btn  { background: #fbd9a0; border-color: #eab96a; color: #6b3f00; }
+.wh-daily-row .btn-check:checked + .btn.s-bad-btn   { background: #f19a9a; border-color: #e07c7c; color: #5c1010; }
+.wh-daily-row .btn-check:checked + .btn.s-fail-btn  { background: #c81e3a; border-color: #c81e3a; color: #fff; }
+.wh-daily-row .btn-check:checked + .btn.s-none-btn  { background: #adb5bd; border-color: #9aa3ab; color: #212529; }
 
 .wh-legend span {
     border: 1px solid rgba(0, 0, 0, .06);
@@ -203,4 +212,12 @@ body.wh-has-savebar {
     .wh-daily-name {
         flex-basis: 100%;
     }
+}
+
+/* The Members dialog can be long: keep its column headings in view */
+#members_modal thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
 }

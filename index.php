@@ -79,6 +79,10 @@ if ($show_upload_block) {
         </div>
     </div>
     <div id="round_message"></div>
+    <div id="share_row" class="d-flex justify-content-end align-items-center gap-2 mt-2" hidden>
+        <span id="share_message" class="small text-muted" role="status"></span>
+        <button type="button" id="share_chart" class="btn btn-sm btn-outline-success"><i class="bi bi-share"></i> Share chart</button>
+    </div>
     <div id="par_chart_container" style="height: 600px;"></div>
     <BR>
     <div id="column_chart_container" style="height: 300px;"></div>
@@ -124,6 +128,41 @@ if ($show_upload_block) {
     <span id="wh_savebar_text"></span>
     <button type="button" class="btn btn-outline-light btn-sm" id="wh_discard">Discard</button>
     <button type="button" class="btn btn-warning btn-sm" id="wh_save">Save changes</button>
+</div>
+
+<!-- Who is in the group -->
+<div class="modal fade" id="members_modal" tabindex="-1" aria-labelledby="members_title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <form class="modal-content" id="members_form">
+            <div class="modal-header">
+                <h5 class="modal-title" id="members_title">Members</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="members_help" class="text-muted small"></p>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-2">
+                        <thead>
+                        <tr>
+                            <th>First name</th>
+                            <th>Family name</th>
+                            <th class="text-center">Rounds played</th>
+                            <th class="text-center" id="members_round_head">Playing this round</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody id="members_rows"></tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="members_add"><i class="bi bi-plus-lg"></i> Add a member</button>
+                <div id="members_error" class="text-danger small mt-3" hidden></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save members</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Create a new group -->
@@ -258,6 +297,7 @@ if ($show_upload_block) {
         integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
 <script src="./js/load_xlsx.js"></script>
 <script src="./js/entry.js"></script>
+<script src="./js/share.js"></script>
 <script src="./js/mycharts.js"></script>
 <script src="./frameworks/highcharts_12_4_0/highcharts.js"></script>
 <script src="./frameworks/highcharts_12_4_0/series-label.js"></script>

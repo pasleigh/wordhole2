@@ -44,6 +44,9 @@ function show_round(index) {
     draw_par_chart(selected_round_data, CHART_ID);
     draw_column_chart(selected_round_data, COLUMN_CHART_ID);
     wh_show_round(selected_round_data)
+    if (typeof wh_show_share === 'function') {
+        wh_show_share(true)
+    }
 }
 
 // Fill the group dropdown, choose the group to start on and show its results.
@@ -126,6 +129,9 @@ function show_no_rounds(message) {
     $('#column_chart_container').empty()
     $('#round_message').html("<p class='text-muted mt-3'>" + escapeHtml(message) + "</p>")
     wh_show_round(null)
+    if (typeof wh_show_share === 'function') {
+        wh_show_share(false)
+    }
 }
 
 function report_ajax_error(jqXHR, textStatus, errorThrown) {
@@ -251,6 +257,11 @@ function draw_par_chart(score_data, container_id) {
     */
     $('#' + container_id).show();
     $('#' + container_id).highcharts(myChart);
+    // Get a picture of the chart ready to send to a chat (see share.js)
+    if (typeof wh_prepare_share === 'function') {
+        let file_name = "wordhole_" + current_group_code.replace(/[^A-Za-z0-9_-]+/g, '_') + "_round_" + score_data.round_num + ".png";
+        wh_prepare_share($('#' + container_id).highcharts(), file_name, $('<div>').html(myChart.title.text).text() + " - " + subtitle_text);
+    }
 
 }
 function draw_column_chart(score_data, container_id) {

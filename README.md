@@ -1,6 +1,5 @@
-# Wordhole
+# Wordhole 2
 
-- added thing with vale
 ## Groups
 
 Several independent groups can share one install. Each group has its own people, rounds and results, and is
@@ -31,11 +30,20 @@ Anyone can look at a group's results. Changing them needs that group's password.
   result; Enter or the arrow keys move between cells) or use "Daily entry" to pick a day and tap each player's score. The solution word
   is typed the same way. Totals and means are worked out for you (`X` and `-` count as 6.9999 and 7.0001 in the mean, as in the workbook).
   Nothing is stored until you press "Save changes".
+- **Members**: the "Members" button (needs the group's password, no admin) lists everybody in the group. Correct a name, add someone
+  who has joined, and tick who is playing the round you are looking at. Someone who has scores cannot be removed from the group, or
+  taken out of a round they have scored in, so no results can be lost; a member who never scored can be removed. Workbook uploads
+  match people by exact name, so if you rename someone here, change the name in your workbook too or the next upload adds them again.
 - **New round**: the round number, first day, first Wordle number and par are filled in from the previous round (rounds are 21 days
   apart); tick who is playing and add new players one per line.
 - **New group** (no workbook needed): the "New group" button asks for the **super admin password**, then a name, a unique code and
   a password for the group. You are logged in to the new group straight away and the New round dialog opens so you can add its first
   round and players.
+- **Share chart**: the button above the chart makes a picture of the line chart (with the group, round and first hole in its title) to
+  send to a WhatsApp or Messenger group. On a phone it opens the share sheet, where you pick the app and the group. On a computer it
+  copies the picture to paste into the chat, or saves it as a PNG if the browser will not copy. A web page cannot post into a group by
+  itself, so you always choose where it goes. The share sheet and copying need a secure connection (https, or localhost); on plain
+  http the picture is saved instead.
 - **Uploading a workbook** (`index.php?upload`) needs the group's password too. A workbook whose code is a new group creates that
   group, which needs the super admin password as well; the group password typed at upload becomes the new group's password.
 
