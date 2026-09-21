@@ -12,6 +12,9 @@ require_post();
 if (!isset($_POST['group_id']) || !ctype_digit((string)$_POST['group_id'])) {
     json_fail("group_id is required.", 400);
 }
+/**
+ * @var $db // from create_sqlite_tables
+ */
 $group_id = (int)$_POST['group_id'];
 require_group_editor($db, $group_id);
 

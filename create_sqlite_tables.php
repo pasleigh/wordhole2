@@ -1,6 +1,8 @@
 <?php
 (@include_once("./config.php")) or die("Cannot find this file to include: config.php<BR>");
-
+/**
+ * @var $db_sqlite // from config.php
+ */
 $db = new SQLite3($db_sqlite, SQLITE3_OPEN_CREATE | SQLITE3_OPEN_READWRITE) or die("cannot open the database");
 $db->busyTimeout(5000);
 $db->enableExceptions(true);

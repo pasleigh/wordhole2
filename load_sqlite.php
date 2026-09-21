@@ -11,7 +11,9 @@ if (!ctype_digit((string)$group_id)) {
     json_fail("A group_id is required.", 400);
 }
 $group_id = (int)$group_id;
-
+/**
+ * @var $db // from create_sqlite_tables
+ */
 try {
     $group = db_row($db, "SELECT id, code, name FROM w_groups WHERE id = :group_id", array(':group_id' => $group_id));
     if (!$group) {
