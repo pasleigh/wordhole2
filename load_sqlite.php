@@ -15,7 +15,7 @@ $group_id = (int)$group_id;
  * @var $db // from create_sqlite_tables
  */
 try {
-    $group = db_row($db, "SELECT id, code, name FROM w_groups WHERE id = :group_id", array(':group_id' => $group_id));
+    $group = db_row($db, "SELECT id, code, name, hidden FROM w_groups WHERE id = :group_id", array(':group_id' => $group_id));
     if (!$group) {
         json_fail("There is no group with id $group_id.", 404);
     }

@@ -50,7 +50,8 @@ $results = $db->query($query);
 // PRAGMA user_version so this file is safe to include on every request.
 //   1 = groups: w_groups table and group_id on w_index, w_people and w_answer
 //   2 = editing: a password per group, the people in each round, login throttling and a signing secret
-define('LATEST_SCHEMA_VERSION', 2);
+//   3 = a group can be hidden from the group list
+define('LATEST_SCHEMA_VERSION', 3);
 
 $schema_version = (int)$db->querySingle("PRAGMA user_version");
 if ($schema_version < LATEST_SCHEMA_VERSION) {
@@ -120,6 +121,9 @@ function run_migrations($db, $db_file, $legacy_code, $legacy_name)
         }
         if ($version < 2) {
             migrate_to_editing($db);
+        }
+        if ($version < 3) {
+            migrate_to_hidden_groups($db);
         }
 
         $db->exec("PRAGMA user_version = " . LATEST_SCHEMA_VERSION);
@@ -198,4 +202,12 @@ function migrate_to_editing($db)
     $stmt = $db->prepare("INSERT OR IGNORE INTO w_settings (name, value) VALUES ('auth_secret', :secret)");
     $stmt->bindValue(':secret', bin2hex(random_bytes(32)), SQLITE3_TEXT);
     $stmt->execute();
+}
+
+// Version 3: a group that is no longer used can be hidden from the group list (its link still works)
+function migrate_to_hidden_groups($db)
+{
+    if (!column_exists($db, 'w_groups', 'hidden')) {
+        $db->exec("ALTER TABLE w_groups ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0");
+    }
 }

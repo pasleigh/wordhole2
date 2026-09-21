@@ -170,8 +170,8 @@ function valid_group_code($code)
     return (bool)preg_match('/^[\p{L}\p{N}_. -]{1,40}$/u', $code);
 }
 
-// Find the group with this code, creating it if it is new. A non-blank name replaces the stored name;
-// a new group with no name is called by its code. A new group is given $password_hash to edit it with.
+// Find the group with this code, creating it if it is new. A new group is called $name (or its code if that is blank)
+// and is given $password_hash to edit it with. An existing group keeps its name: renaming is done by the super admin.
 function GetGroupID($db, $code, $name = '', $password_hash = null)
 {
     $name = trim($name);
@@ -179,9 +179,6 @@ function GetGroupID($db, $code, $name = '', $password_hash = null)
 
     if ($group) {
         $id = $group['id'];
-        if ($name !== '' && $name !== $group['name']) {
-            db_run($db, "UPDATE w_groups SET name = :name WHERE id = :id", array(':name' => $name, ':id' => $id));
-        }
     } else {
         if ($name === '') {
             $name = $code;

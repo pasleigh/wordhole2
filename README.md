@@ -10,7 +10,7 @@ Each `Round n` sheet of an uploaded workbook identifies its group:
 | Cell | Holds |
 |------|-------|
 | A2   | the group's unique code (up to 40 letters, numbers, spaces, `.`, `-`, `_`; not case sensitive). Must be the same on every round sheet. |
-| A3   | the group's display name (optional; the code is used if blank). |
+| A3   | the group's display name (optional; the code is used if blank). It names the group when it is created; later renaming is done by the super admin. |
 
 A workbook with a new code creates a new group. Results that existed before groups were added belong to the group
 set by `$legacy_group_code` / `$legacy_group_name` in `config.php`.
@@ -56,6 +56,17 @@ password, separate from every group password. Set it once, and reset it the same
 
 Until it is set nobody can create a group (`php manage_groups.php list` shows whether it is set). It is asked for each time a
 group is created and is not remembered by the browser. After ten wrong guesses in 15 minutes it is locked for a while.
+
+The super admin also looks after existing groups, from the "Group settings" section at the bottom of the **Members** dialog (it asks
+for the super admin password, not the group's):
+
+- **Rename a group.**
+- **Hide a group from the group list** once it is no longer used. Nothing is deleted: its results are kept and its link
+  (`index.php?g=<code>`) still opens it, marked "hidden". Open that link, log in to the group, and untick the box to bring it back.
+  Someone who opens the site without a link never sees a hidden group.
+
+The same can be done from a terminal: `php manage_groups.php rename <code> "New name"`, `hide <code>` and `unhide <code>`
+(`list` marks hidden groups).
 
 The database is upgraded automatically on the first request, and needs write access for the web server (Apache's user, e.g.
 `daemon`) to the database file and its folder. A copy of the old file is kept as `<database>.pre-upgrade-from-v<n>-<timestamp>.bak`.

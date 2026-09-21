@@ -5,6 +5,7 @@ var current_group_id = null
 var current_group_name = ""
 var current_group_code = ""
 var group_has_password = false
+var current_group_hidden = false
 var all_groups = []
 var group_people = []        // everybody who has played in the current group
 const GROUP_STORAGE_KEY = 'wordhole_group_code'
@@ -53,17 +54,24 @@ function show_round(index) {
 // The group comes from the g=<code> in the page address, else the one used last time, else the first.
 // keep_round_id: the database id of the round to show again afterwards (e.g. after logging in)
 function load_groups(keep_round_id) {
+    // A hidden group is left out of the list, unless its link (g=<code>) is the page being shown
+    var list_data = new FormData();
+    var linked_code = new URLSearchParams(window.location.search).get('g')
+    if (linked_code !== null) {
+        list_data.append('include_code', linked_code);
+    }
     $.ajax({
         type: 'post',
         url: './load_groups.php',
         contentType: false,
         processData: false,
+        data: list_data,
         dataType: "json",
         success: function (mydata) {
             all_groups = mydata.groups
             let select = $('#group_select').empty()
             for (let i = 0; i < all_groups.length; i++) {
-                select.append($('<option>').val(all_groups[i].id).text(all_groups[i].name))
+                select.append($('<option>').val(all_groups[i].id).text(all_groups[i].name + (all_groups[i].hidden ? ' (hidden)' : '')))
             }
             if (all_groups.length === 0) {
                 show_no_rounds("No results have been uploaded yet.")
@@ -97,6 +105,8 @@ function select_group(group, keep_round_id) {
     current_group_name = group.name
     current_group_code = group.code
     group_has_password = group.has_password
+    current_group_hidden = group.hidden
+    $('#group_hidden_note').prop('hidden', !group.hidden)
     try {
         localStorage.setItem(GROUP_STORAGE_KEY, group.code)
     } catch (e) {

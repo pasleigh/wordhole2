@@ -856,6 +856,10 @@
             + (state.round ? ' ' + state.round.name : ' each round') + '. Someone who has scores cannot be removed from the group, '
             + 'or taken out of a round they have scored in. Workbook uploads match people by exact name, so change the name in your workbook too.')
         showModalError('#members_error', '')
+        $('#settings_name').val(current_group_name)
+        $('#settings_hidden').prop('checked', current_group_hidden)
+        $('#settings_admin_password').val('')
+        showModalError('#settings_error', '')
         renderMembers()
         bootstrap.Modal.getOrCreateInstance(document.getElementById('members_modal')).show()
     }
@@ -946,6 +950,76 @@
         })
         return payload
     }
+
+    // Group settings need the super admin password (not the group's), so they are saved on their own
+    function saveGroupSettings() {
+        const name = $('#settings_name').val().trim().replace(/\s+/g, ' ')
+        const hidden = $('#settings_hidden').prop('checked')
+        if (name === current_group_name && hidden === current_group_hidden) {
+            showModalError('#settings_error', 'Nothing has been changed.')
+            return
+        }
+        if (name === '') {
+            showModalError('#settings_error', 'The group needs a name.')
+            return
+        }
+        if ($('#settings_admin_password').val() === '') {
+            showModalError('#settings_error', 'Enter the super admin password.')
+            return
+        }
+        const memberEdits = memberChanges()
+        const pending = ['rename', 'add', 'remove', 'round_add', 'round_remove'].some(function (key) {
+            return memberEdits[key].length > 0
+        })
+        if (pending && !window.confirm('You have member changes that are not saved yet. Saving the group settings will leave them behind. Carry on?')) {
+            return
+        }
+        showModalError('#settings_error', '')
+        const form_data = new FormData()
+        form_data.append('group_id', current_group_id)
+        form_data.append('admin_password', $('#settings_admin_password').val())
+        form_data.append('name', name)
+        form_data.append('hidden', hidden ? '1' : '0')
+        $.ajax({
+            type: 'post',
+            url: './admin_group.php',
+            contentType: false,
+            processData: false,
+            data: form_data,
+            dataType: 'json',
+            success: function (data) {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('members_modal')).hide()
+                if (data.group.hidden && !current_group_hidden) {
+                    // Just hidden: leave it and show the first group in the list
+                    const url = new URL(window.location.href)
+                    url.searchParams.delete('g')
+                    window.history.replaceState(null, '', url)
+                    try {
+                        localStorage.removeItem(GROUP_STORAGE_KEY)
+                    } catch (e) {
+                        // only a convenience
+                    }
+                    load_groups()
+                } else {
+                    load_groups(state.round ? state.round.round_id : undefined)
+                }
+            },
+            error: function (xhr) {
+                $('#settings_admin_password').val('')
+                showModalError('#settings_error', xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'The group could not be changed.')
+            }
+        })
+    }
+
+    $('#settings_save').on('click', saveGroupSettings)
+
+    // Enter in these boxes saves the group settings, not the members
+    $('#settings_name, #settings_admin_password').on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault()
+            saveGroupSettings()
+        }
+    })
 
     $('#members_modal').on('shown.bs.modal', function () {
         $('#members_rows .member-first').first().trigger('focus')

@@ -64,6 +64,7 @@ if ($show_upload_block) {
                 <label for="group_select">Select a group</label>
                 <select id="group_select" class="form-select" aria-label="Select a group to show">
                 </select>
+                <span id="group_hidden_note" class="badge text-bg-secondary mt-1" hidden>Hidden from the group list</span>
             </div>
         </div>
         <div class="col-md-3">
@@ -156,6 +157,30 @@ if ($show_upload_block) {
                 </div>
                 <button type="button" class="btn btn-outline-primary btn-sm" id="members_add"><i class="bi bi-plus-lg"></i> Add a member</button>
                 <div id="members_error" class="text-danger small mt-3" hidden></div>
+
+                <hr class="my-4">
+                <h6 class="mb-1">Group settings <span class="badge text-bg-warning align-middle">super admin</span></h6>
+                <p class="text-muted small">Renaming the group or hiding it from the group list needs the super admin password, not the group password.</p>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label for="settings_name" class="form-label">Group name</label>
+                        <input type="text" id="settings_name" class="form-control" maxlength="100" autocomplete="off">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="settings_admin_password" class="form-label">Super admin password</label>
+                        <input type="password" id="settings_admin_password" class="form-control" autocomplete="off">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="settings_hidden">
+                            <label class="form-check-label" for="settings_hidden">Hide this group from the group list (it is no longer used). Its results are kept and its link still works.</label>
+                        </div>
+                    </div>
+                    <div class="col-12 d-flex flex-wrap align-items-center gap-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="settings_save">Save group settings</button>
+                        <span id="settings_error" class="text-danger small" hidden></span>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

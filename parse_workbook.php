@@ -32,7 +32,7 @@ function getDateStrFromCell($worksheet, $row, $col, $date_format = 'd-m-Y')
 
 // Read an Excel workbook of Wordhole rounds. Every "Round n" worksheet holds:
 //   A2 = the group's unique code (the same on every round sheet)
-//   A3 = the group's display name (optional)
+//   A3 = the group's display name (optional; only used when the workbook creates the group)
 // Returns array('group_code'=>, 'group_name'=>, 'round_data'=>, 'file_info'=>)
 function parse_workbook($filename)
 {

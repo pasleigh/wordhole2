@@ -3,6 +3,9 @@
 //   php manage_groups.php list                       show the groups and whether editing is switched on
 //   php manage_groups.php set-password <code>        set or reset the password that lets people change a group's results
 //   php manage_groups.php set-admin-password         set or reset the super admin password that is needed to create groups
+//   php manage_groups.php rename <code> "<name>"     change a group's name
+//   php manage_groups.php hide <code>                leave a group out of the group list (its link still works)
+//   php manage_groups.php unhide <code>              show a hidden group in the group list again
 // This is a command line tool only; it cannot be used from a web page.
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
@@ -14,11 +17,11 @@ chdir(__DIR__);
 $command = isset($argv[1]) ? $argv[1] : '';
 
 if ($command === 'list') {
-    $groups = db_rows($db, "SELECT g.code, g.name, (g.edit_password_hash IS NOT NULL) AS has_password, COUNT(i.id) AS rounds
+    $groups = db_rows($db, "SELECT g.code, g.name, g.hidden, (g.edit_password_hash IS NOT NULL) AS has_password, COUNT(i.id) AS rounds
                             FROM w_groups g LEFT JOIN w_index i ON i.group_id = g.id GROUP BY g.id ORDER BY g.name COLLATE NOCASE");
     foreach ($groups as $group) {
         echo str_pad($group['code'], 14) . str_pad($group['name'], 32) . str_pad($group['rounds'] . " rounds", 12)
-            . ($group['has_password'] ? "editing on" : "NO PASSWORD (view only)") . "\n";
+            . ($group['has_password'] ? "editing on" : "NO PASSWORD (view only)") . ($group['hidden'] ? "  HIDDEN from the list" : "") . "\n";
     }
     echo "\nSuper admin password (needed to create groups): " . (has_admin_password($db) ? "set" : "NOT SET - nobody can create groups") . "\n";
     exit(0);
@@ -46,6 +49,27 @@ function ask_new_password($prompt)
     return $password;
 }
 
+if (in_array($command, array('rename', 'hide', 'unhide'), true) && isset($argv[2])) {
+    $group = db_row($db, "SELECT id, code, name FROM w_groups WHERE code = :code", array(':code' => $argv[2]));
+    if (!$group) {
+        fwrite(STDERR, "There is no group with the code \"" . $argv[2] . "\". Try: php manage_groups.php list\n");
+        exit(1);
+    }
+    if ($command === 'rename') {
+        $name = isset($argv[3]) ? trim(preg_replace('/\s+/u', ' ', $argv[3])) : '';
+        if ($name === '' || mb_strlen($name) > 100) {
+            fwrite(STDERR, "Give the new name (1 to 100 characters) in quotes. Nothing was changed.\n");
+            exit(1);
+        }
+        db_run($db, "UPDATE w_groups SET name = :name WHERE id = :id", array(':name' => $name, ':id' => $group['id']));
+        echo $group['code'] . " is now called \"" . $name . "\".\n";
+    } else {
+        db_run($db, "UPDATE w_groups SET hidden = :hidden WHERE id = :id", array(':hidden' => $command === 'hide' ? 1 : 0, ':id' => $group['id']));
+        echo $group['name'] . ($command === 'hide' ? " is now hidden from the group list (its link still works).\n" : " is shown in the group list again.\n");
+    }
+    exit(0);
+}
+
 if ($command === 'set-admin-password') {
     $password = ask_new_password("New super admin password");
     if ($password === null) {
@@ -71,5 +95,5 @@ if ($command === 'set-password' && isset($argv[2])) {
     exit(0);
 }
 
-fwrite(STDERR, "Usage:\n  php manage_groups.php list\n  php manage_groups.php set-password <group code>\n  php manage_groups.php set-admin-password\n");
+fwrite(STDERR, "Usage:\n  php manage_groups.php list\n  php manage_groups.php set-password <group code>\n  php manage_groups.php set-admin-password\n  php manage_groups.php rename <group code> \"<new name>\"\n  php manage_groups.php hide <group code>\n  php manage_groups.php unhide <group code>\n");
 exit(1);
