@@ -49,7 +49,14 @@ if ($show_upload_block) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Wordhole Record</title>
-    <link rel="icon" type="image/x-icon" href="./wordle_96.jpg">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <meta name="theme-color" content="#80aa61">
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Wordhole">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -331,6 +338,13 @@ if ($show_upload_block) {
 <script src="./frameworks/highcharts_12_4_0/accessibility.js"></script>
 
 <script>
+    // Lets the site be installed as an app on phones (see sw.js and manifest.webmanifest)
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./sw.js").catch((err) => console.warn("Service worker not registered", err));
+        });
+    }
+
     let dropArea = document.getElementById("drop-area");
 
     // The drop box is only on the page when it is opened with ?upload
