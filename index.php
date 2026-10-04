@@ -141,12 +141,14 @@ if ($show_upload_block) {
 <!-- Who is in the group -->
 <div class="modal fade" id="members_modal" tabindex="-1" aria-labelledby="members_title" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <form class="modal-content" id="members_form">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="members_title">Members</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <!-- Two separate forms, so password managers see the super admin login on its own -->
+                <form id="members_form">
                 <p id="members_help" class="text-muted small"></p>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-2">
@@ -164,42 +166,42 @@ if ($show_upload_block) {
                 </div>
                 <button type="button" class="btn btn-outline-primary btn-sm" id="members_add"><i class="bi bi-plus-lg"></i> Add a member</button>
                 <div id="members_error" class="text-danger small mt-3" hidden></div>
+                </form>
 
                 <hr class="my-4">
+                <form id="settings_form">
                 <h6 class="mb-1">Group settings <span class="badge text-bg-warning align-middle">super admin</span></h6>
                 <p class="text-muted small">Renaming the group or hiding it from the group list needs the super admin password, not the group password.</p>
                 <div class="row g-3 align-items-end">
                     <div class="col-md-6">
                         <label for="settings_name" class="form-label">Group name</label>
-                        <input type="text" id="settings_name" class="form-control" maxlength="100" autocomplete="off" form="settings_form">
+                        <input type="text" id="settings_name" class="form-control" maxlength="100" autocomplete="off">
                     </div>
                     <div class="col-md-6">
                         <label for="settings_admin_password" class="form-label">Super admin password</label>
-                        <input type="text" name="username" value="Super admin" autocomplete="username" class="d-none" readonly tabindex="-1" aria-hidden="true" form="settings_form">
-                        <input type="password" id="settings_admin_password" name="password" class="form-control" autocomplete="current-password" form="settings_form">
+                        <input type="text" name="username" value="Super admin" autocomplete="username" class="d-none" tabindex="-1" aria-hidden="true">
+                        <input type="password" id="settings_admin_password" name="password" class="form-control" autocomplete="current-password">
                     </div>
                     <div class="col-12">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="settings_hidden" form="settings_form">
+                            <input class="form-check-input" type="checkbox" id="settings_hidden">
                             <label class="form-check-label" for="settings_hidden">Hide this group from the group list (it is no longer used). Its results are kept and its link still works.</label>
                         </div>
                     </div>
                     <div class="col-12 d-flex flex-wrap align-items-center gap-3">
-                        <button type="submit" class="btn btn-outline-primary btn-sm" id="settings_save" form="settings_form">Save group settings</button>
+                        <button type="submit" class="btn btn-outline-primary btn-sm" id="settings_save">Save group settings</button>
                         <span id="settings_error" class="text-danger small" hidden></span>
                     </div>
                 </div>
+                </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save members</button>
+                <button type="submit" class="btn btn-primary" form="members_form">Save members</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
-
-<!-- The group settings above belong to this form, so password managers see the super admin login on its own -->
-<form id="settings_form" hidden></form>
 
 <!-- Create a new group -->
 <div class="modal fade" id="group_modal" tabindex="-1" aria-labelledby="group_title" aria-hidden="true">
@@ -242,7 +244,7 @@ if ($show_upload_block) {
             </div>
             <div class="modal-body">
                 <p class="mb-2">Enter the password for <strong id="login_group_name"></strong>.</p>
-                <input type="text" id="login_username" name="username" autocomplete="username" class="d-none" readonly tabindex="-1" aria-hidden="true">
+                <input type="text" id="login_username" name="username" autocomplete="username" class="d-none" tabindex="-1" aria-hidden="true">
                 <input type="password" id="login_password" name="password" class="form-control" autocomplete="current-password" required>
                 <div id="login_error" class="text-danger small mt-2" hidden></div>
             </div>
@@ -264,7 +266,7 @@ if ($show_upload_block) {
             </div>
             <div class="modal-body">
                 <p class="text-muted small">Everybody else who is logged in to this group will need the new password.</p>
-                <input type="text" id="password_username" name="username" autocomplete="username" class="d-none" readonly tabindex="-1" aria-hidden="true">
+                <input type="text" id="password_username" name="username" autocomplete="username" class="d-none" tabindex="-1" aria-hidden="true">
                 <label for="password_current" class="form-label">Current password</label>
                 <input type="password" id="password_current" class="form-control mb-3" autocomplete="current-password" required>
                 <label for="password_new" class="form-label">New password (at least 8 characters)</label>
