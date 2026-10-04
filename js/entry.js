@@ -728,8 +728,24 @@
         $(selector).text(message).prop('hidden', !message)
     }
 
+    // The passwords have no username, so password managers save each one under a made-up username:
+    // the group's code for a group password and SUPER_ADMIN_USERNAME for the super admin password.
+    // The forms carry it in a hidden field; this also asks the browser to save the password, because the
+    // forms are sent with AJAX and some browsers do not notice that a login worked.
+    const SUPER_ADMIN_USERNAME = 'Super admin'
+
+    function rememberPassword(username, password) {
+        if (window.PasswordCredential && navigator.credentials) {
+            navigator.credentials.store(new PasswordCredential({id: username, password: password, name: username}))
+                .catch(function () {
+                    // only a convenience
+                })
+        }
+    }
+
     function openLogin(message) {
         $('#login_group_name').text(current_group_name)
+        $('#login_username').val(current_group_code)
         $('#login_password').val('')
         showModalError('#login_error', message || '')
         bootstrap.Modal.getOrCreateInstance(document.getElementById('login_modal')).show()
@@ -752,6 +768,7 @@
             data: form_data,
             dataType: 'json',
             success: function () {
+                rememberPassword(current_group_code, $('#login_password').val())
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('login_modal')).hide()
                 state.canEdit = true
                 state.editing = true
@@ -784,6 +801,7 @@
 
     function openChangePassword() {
         $('#password_form')[0].reset()
+        $('#password_username').val(current_group_code)
         showModalError('#password_error', '')
         bootstrap.Modal.getOrCreateInstance(document.getElementById('password_modal')).show()
     }
@@ -810,6 +828,7 @@
             data: form_data,
             dataType: 'json',
             success: function (data) {
+                rememberPassword(current_group_code, $('#password_new').val())
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('password_modal')).hide()
                 alert(data.message)
             },
@@ -988,6 +1007,7 @@
             data: form_data,
             dataType: 'json',
             success: function (data) {
+                rememberPassword(SUPER_ADMIN_USERNAME, $('#settings_admin_password').val())
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('members_modal')).hide()
                 if (data.group.hidden && !current_group_hidden) {
                     // Just hidden: leave it and show the first group in the list
@@ -1011,14 +1031,10 @@
         })
     }
 
-    $('#settings_save').on('click', saveGroupSettings)
-
-    // Enter in these boxes saves the group settings, not the members
-    $('#settings_name, #settings_admin_password').on('keydown', function (e) {
-        if (e.key === 'Enter') {
-            e.preventDefault()
-            saveGroupSettings()
-        }
+    // The settings boxes belong to their own form, so Enter in them saves the settings, not the members
+    $('#settings_form').on('submit', function (e) {
+        e.preventDefault()
+        saveGroupSettings()
     })
 
     $('#members_modal').on('shown.bs.modal', function () {
@@ -1097,6 +1113,7 @@
             data: form_data,
             dataType: 'json',
             success: function (data) {
+                rememberPassword(data.group.code, $('#group_password').val())
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('group_modal')).hide()
                 // Show the new group, which starts with no rounds; you are already logged in to it
                 const url = new URL(window.location.href)

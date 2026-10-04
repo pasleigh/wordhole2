@@ -171,20 +171,21 @@ if ($show_upload_block) {
                 <div class="row g-3 align-items-end">
                     <div class="col-md-6">
                         <label for="settings_name" class="form-label">Group name</label>
-                        <input type="text" id="settings_name" class="form-control" maxlength="100" autocomplete="off">
+                        <input type="text" id="settings_name" class="form-control" maxlength="100" autocomplete="off" form="settings_form">
                     </div>
                     <div class="col-md-6">
                         <label for="settings_admin_password" class="form-label">Super admin password</label>
-                        <input type="password" id="settings_admin_password" class="form-control" autocomplete="off">
+                        <input type="text" name="username" value="Super admin" autocomplete="username" class="d-none" readonly tabindex="-1" aria-hidden="true" form="settings_form">
+                        <input type="password" id="settings_admin_password" name="password" class="form-control" autocomplete="current-password" form="settings_form">
                     </div>
                     <div class="col-12">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="settings_hidden">
+                            <input class="form-check-input" type="checkbox" id="settings_hidden" form="settings_form">
                             <label class="form-check-label" for="settings_hidden">Hide this group from the group list (it is no longer used). Its results are kept and its link still works.</label>
                         </div>
                     </div>
                     <div class="col-12 d-flex flex-wrap align-items-center gap-3">
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="settings_save">Save group settings</button>
+                        <button type="submit" class="btn btn-outline-primary btn-sm" id="settings_save" form="settings_form">Save group settings</button>
                         <span id="settings_error" class="text-danger small" hidden></span>
                     </div>
                 </div>
@@ -197,6 +198,9 @@ if ($show_upload_block) {
     </div>
 </div>
 
+<!-- The group settings above belong to this form, so password managers see the super admin login on its own -->
+<form id="settings_form" hidden></form>
+
 <!-- Create a new group -->
 <div class="modal fade" id="group_modal" tabindex="-1" aria-labelledby="group_title" aria-hidden="true">
     <div class="modal-dialog">
@@ -207,12 +211,12 @@ if ($show_upload_block) {
             </div>
             <div class="modal-body">
                 <label for="group_admin_password" class="form-label">Super admin password</label>
-                <input type="password" id="group_admin_password" class="form-control" autocomplete="off" required>
+                <input type="password" id="group_admin_password" class="form-control" autocomplete="current-password" required>
                 <div class="form-text mb-3">Only the site's administrator can create a group.</div>
                 <label for="group_name" class="form-label">Group name</label>
                 <input type="text" id="group_name" class="form-control mb-3" maxlength="100" autocomplete="off" required>
                 <label for="group_code" class="form-label">Group code</label>
-                <input type="text" id="group_code" class="form-control" maxlength="40" autocomplete="off" required>
+                <input type="text" id="group_code" name="username" class="form-control" maxlength="40" autocomplete="username" required>
                 <div class="form-text mb-3">A short unique identifier, e.g. FAM01: letters, numbers, spaces, dots, dashes or underscores. It goes in the page address, and in cell A2 if you also upload workbooks.</div>
                 <label for="group_password" class="form-label">Password for entering scores (at least 8 characters)</label>
                 <input type="password" id="group_password" class="form-control mb-3" autocomplete="new-password" minlength="8" required>
@@ -238,7 +242,8 @@ if ($show_upload_block) {
             </div>
             <div class="modal-body">
                 <p class="mb-2">Enter the password for <strong id="login_group_name"></strong>.</p>
-                <input type="password" id="login_password" class="form-control" autocomplete="current-password" required>
+                <input type="text" id="login_username" name="username" autocomplete="username" class="d-none" readonly tabindex="-1" aria-hidden="true">
+                <input type="password" id="login_password" name="password" class="form-control" autocomplete="current-password" required>
                 <div id="login_error" class="text-danger small mt-2" hidden></div>
             </div>
             <div class="modal-footer">
@@ -259,6 +264,7 @@ if ($show_upload_block) {
             </div>
             <div class="modal-body">
                 <p class="text-muted small">Everybody else who is logged in to this group will need the new password.</p>
+                <input type="text" id="password_username" name="username" autocomplete="username" class="d-none" readonly tabindex="-1" aria-hidden="true">
                 <label for="password_current" class="form-label">Current password</label>
                 <input type="password" id="password_current" class="form-control mb-3" autocomplete="current-password" required>
                 <label for="password_new" class="form-label">New password (at least 8 characters)</label>
