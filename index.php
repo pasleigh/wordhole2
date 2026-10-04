@@ -64,7 +64,7 @@ if ($show_upload_block) {
 </head>
 <body>
 <div class="container">
-    <h2>Wordhole Record of Rounds</h2>
+    <h2 style="padding: 20px;">Wordhole Record of Rounds</h2>
     <div class="row align-items-end">
         <div class="col-md-3">
             <div class="form-group">
